@@ -43,7 +43,12 @@ bool LensElement::pass_through(Ray &r, double &prev_ior) const {
   if(!intersect(r,&hit_p)){
     return false;
   }else{
-    if(!refract(r,hit_p,prev_ior);
+    if(!refract(r,hit_p,prev_ior)){
+      return false;
+    }else{
+
+      return true;
+    }
   }
 
 }
@@ -75,9 +80,9 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
 
 
     if(hit1_2_z<hit2_2_z){
-       hit_p = hit_t1;
+       *hit_p = hit_t1;
     }else{
-       hit_p = hit_t2;
+       *hit_p = hit_t2;
     }
 
     return true;
@@ -91,9 +96,12 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
   // Part 1 Task 1: Implement this. It refracts the Ray r with this lens element or 
   // does nothing at the aperture element.
   // You'll want to consult your refract function from the previous assignment.
+  double IOR = prev_ior/ior;
+  Vector3D normal = Vector3D(hit_p.x, hit_p.y, hit_p.z - center);
+  normal = normal.unit();
 
   Matrix3x3 o2w;
-  make_coord_space(o2w, isect.n);
+  make_coord_space(o2w, normal);
   Matrix3x3 w2o = o2w.T();
 
   //Vector3D hit_p = r.o + r.d * isect.t;
@@ -108,40 +116,45 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
   if(w_in[2]<0)
   {
     float o=sqrt(1-w_in[2]*w_in[2]);
-    float i=o*prev_ior;
+    float i=o*IOR;
     if(i<1)
     {
       w_out=-w_in;
-      w_out->z=sqrt(1-i*i);
+      w_out.z=sqrt(1-i*i);
       float f=sqrt(i*i/(w_in[0]*w_in[0]+w_in[1]*w_in[1]));
-      w_out->x=w_out->x*f;
-      w_out->y=w_out->y*f;
-      w_out->normalize();
+      w_out.x=w_out.x*f;
+      w_out.y=w_out.y*f;
+      w_out.normalize();
+      
+      prev_ior = ior;
+      r.o = hit_p;
+      r.d = w_out;
       return true;
     }
-    *w_out=2*w_in.z*Vector3D(0,0,1.0)-w_in;
+    //w_out=2*w_in.z*Vector3D(0,0,1.0)-w_in;
     return false;
   }
   
   else
   {
     float o=sqrt(1-w_in[2]*w_in[2]);
-    float i=o/prev_ior;
+    float i=o/IOR;
       w_out=-w_in;
-      w_out->z=-sqrt(1-i*i);
+      w_out.z=-sqrt(1-i*i);
       float f=sqrt(i*i/(w_in[0]*w_in[0]+w_in[1]*w_in[1]));
-      w_out->x=w_out->x*f;
-      w_out->y=w_out->y*f;
-      w_out->normalize();
+      w_out.x=w_out.x*f;
+      w_out.y=w_out.y*f;
+      w_out.normalize();
+
+      prev_ior = ior;
+      r.o = hit_p;
+      r.d = w_out;
       return true;
     
   }
 
 
 }
-
-
-
 
 
 
