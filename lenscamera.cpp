@@ -37,8 +37,11 @@ static const double scale = .001;
 
 bool LensElement::pass_through(Ray &r, double &prev_ior) const {
   // Part 1 Task 1: Implement this. It takes r and passes it through this lens element.
-  
+  //cout<<"before"<<r.o<<endl;
   Vector3D hit_p;
+/*  if(radius == .0){
+    return true;
+  }*/
   //return true;
   if(!intersect(r,&hit_p)){
     return false;
@@ -46,7 +49,7 @@ bool LensElement::pass_through(Ray &r, double &prev_ior) const {
     if(!refract(r,hit_p,prev_ior)){
       return false;
     }else{
-
+      //cout<<"after"<<r.o<<endl;
       return true;
     }
   }
@@ -55,6 +58,17 @@ bool LensElement::pass_through(Ray &r, double &prev_ior) const {
 bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
   // Part 1 Task 1: Implement this. It intersects r with this spherical lens elemnent 
   // (or aperture diaphragm). You'll want to reuse some sphere intersect code.
+  if(radius == 0){
+    double t = (center - r.o.z)/r.d.z;
+    Vector3D hp = r.o + t*r.d;
+    double hp2z = sqrt(hp.x*hp.x + hp.y*hp.y);
+    if(hp2z<0.5*aperture){
+      return true;
+    }
+    return false;
+  }
+
+
   Vector3D Center = Vector3D(.0,.0,center);
   Vector3D oc = r.o - Center;
   double a = r.d[0]*r.d[0]+r.d[1]*r.d[1]+r.d[2]*r.d[2];
@@ -96,65 +110,57 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
   // Part 1 Task 1: Implement this. It refracts the Ray r with this lens element or 
   // does nothing at the aperture element.
   // You'll want to consult your refract function from the previous assignment.
-  double IOR = prev_ior/ior;
+
+  if(radius == 0){
+   return true;
+
+  }
+
+
   Vector3D normal = Vector3D(hit_p.x, hit_p.y, hit_p.z - center);
   normal = normal.unit();
+  Vector3D rd = r.d.unit();
+  // double judge = dot(normal,r.d.normalize());
+  double judge = normal.x*rd.x + normal.y*rd.y+ normal.z*rd.z; 
+  if(judge == -1.0){
+    normal = -normal;
+  }
 
   Matrix3x3 o2w;
   make_coord_space(o2w, normal);
   Matrix3x3 w2o = o2w.T();
 
   //Vector3D hit_p = r.o + r.d * isect.t;
-  Vector3D w_in = w2o * r.d;
-  Vector3D w_out;
+  Vector3D w_in = w2o * (-r.d);
+  //Vector3D w_out;
 
+  
+  double eta = prev_ior/ior;
+  //Flip this ratio if the ray is traveling backwards.
+
+  double sin2theta =  eta*eta*fmax(0.0, 1.0 - w_in.z * w_in.z);
+  if(sin2theta > 1.0){
+    return false;
+  }
+
+  double cosine = sqrt(1.0 - sin2theta);
+  Vector3D newdirection = (-eta*w_in.x, -eta*w_in.y, -cosine);
+  newdirection = o2w*newdirection;
+  newdirection = newdirection.unit();
+  r = Ray(hit_p,newdirection);
+
+  return true;
 
 
 //  return true;
 
 
-  if(w_in[2]<0)
-  {
-    float o=sqrt(1-w_in[2]*w_in[2]);
-    float i=o*IOR;
-    if(i<1)
-    {
-      w_out=-w_in;
-      w_out.z=sqrt(1-i*i);
-      float f=sqrt(i*i/(w_in[0]*w_in[0]+w_in[1]*w_in[1]));
-      w_out.x=w_out.x*f;
-      w_out.y=w_out.y*f;
-      w_out.normalize();
-      
-      prev_ior = ior;
-      r.o = hit_p;
-      r.d = w_out;
-      return true;
-    }
-    //w_out=2*w_in.z*Vector3D(0,0,1.0)-w_in;
-    return false;
-  }
-  
-  else
-  {
-    float o=sqrt(1-w_in[2]*w_in[2]);
-    float i=o/IOR;
-      w_out=-w_in;
-      w_out.z=-sqrt(1-i*i);
-      float f=sqrt(i*i/(w_in[0]*w_in[0]+w_in[1]*w_in[1]));
-      w_out.x=w_out.x*f;
-      w_out.y=w_out.y*f;
-      w_out.normalize();
 
-      prev_ior = ior;
-      r.o = hit_p;
-      r.d = w_out;
-      return true;
-    
-  }
 
 
 }
+
+
 
 
 
