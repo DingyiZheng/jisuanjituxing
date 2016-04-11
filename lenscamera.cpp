@@ -43,6 +43,7 @@ bool LensElement::pass_through(Ray &r, double &prev_ior) const {
     return true;
   }*/
   //return true;
+    //cout<<"r.d="<<r.d<<endl;
   if(!intersect(r,&hit_p)){
     return false;
   }else{
@@ -67,7 +68,7 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
     }
     return false;
   }
-
+  
 
   Vector3D Center = Vector3D(.0,.0,center);
   Vector3D oc = r.o - Center;
@@ -75,7 +76,7 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
   double b = 2*(oc[0]*r.d[0]+oc[1]*r.d[1]+oc[2]*r.d[2]);
   double c = oc[0]*oc[0] + oc[1]*oc[1] + oc[2]*oc[2] - radius*radius;
   double b24ac = b*b - 4*a*c;
-  if(b24ac<0){
+  if(b24ac<=0){
    // cout<<"222"<<endl;
     return false;
   }else{
@@ -86,25 +87,69 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
     r.max_t = max(tt1,tt2);
     Vector3D hit_t1 = r.o + tt1*r.d;
     Vector3D hit_t2 = r.o + tt2*r.d;
-    double hit1_2_z = sqrt(hit_t1.x*hit_t1.x + hit_t1.y*hit_t1.y);
-    double hit2_2_z = sqrt(hit_t2.x*hit_t2.x + hit_t2.y*hit_t2.y);
-    if(min(hit1_2_z,hit2_2_z)>=aperture){
-      return false;
-    }
+   // double hit1_2_z = sqrt(hit_t1.x*hit_t1.x + hit_t1.y*hit_t1.y);
+  //  double hit2_2_z = sqrt(hit_t2.x*hit_t2.x + hit_t2.y*hit_t2.y);
+    // if(min(hit1_2_z,hit2_2_z)>=0.5*aperture){
+    //   return false;
+    // }
 
 
-    if(hit1_2_z<hit2_2_z){
-       *hit_p = hit_t1;
+    // if(hit1_2_z<hit2_2_z){
+    //    *hit_p = hit_t1;
+
+    //    return true;
+    // }else{
+    //    *hit_p = hit_t2;
+    //    return true;
+    // }
+    if(helperhit(radius,aperture,center,hit_t1)&&helperhit(radius,aperture,center,hit_t2)){
+      *hit_p = helpermin(hit_t1,hit_t2);
+      return true;
     }else{
-       *hit_p = hit_t2;
+      if(helperhit(radius,aperture,center,hit_t1)){
+        *hit_p = hit_t1;
+        return true;
+      }
+      if(helperhit(radius,aperture,center,hit_t2)){
+        *hit_p = hit_t2;
+        return true;
+      }
     }
 
-    return true;
+    return false;
+
   }
 
 
  // return true;
   
+}
+
+bool lensElement::helperhit(double radius, double aperture,double center, Vector3D hit1){
+  if(radius>0){
+    if(hit1.z>center&&sqrt(hit1.x*hit1.x+hit1.y*hit1.y)<0.5*aperture){
+      return true;
+
+    }
+    return false;
+  }
+
+  if(radius <0 ){
+    if(hit1.z<center&&sqrt(hit1.x*hit1.x+hit1.y*hit1.y)<0.5*aperture){
+      return true;
+
+    }
+    return false;
+  }
+
+} 
+
+Vector3D lensElement::helpermin(Vector3D v1, Vector3D v2){
+  if(v1.z<v2.z){
+    return v1;
+  }
+  return v2;
+
 }
 bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior) const {
   // Part 1 Task 1: Implement this. It refracts the Ray r with this lens element or 
@@ -159,6 +204,7 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
 
 
 }
+
 
 
 
@@ -238,7 +284,13 @@ void Lens::set_focus_params() {
 
 bool Lens::trace(Ray &r, std::vector<Vector3D> *trace) const {
   // Part 1 Task 1: Implement this. It traces a ray from the sensor out into the world.
-
+  double prev_ior;
+  for (int i = 0; i <= elts.size()-1; i++){
+    prev_ior = i < elts.size()-1 ? elts[i+1].ior : 1;
+    elts[i].pass_through(r,prev_ior);
+    trace->push_back(r.o);
+  
+  } 
 
 
   return true;
@@ -247,7 +299,13 @@ bool Lens::trace(Ray &r, std::vector<Vector3D> *trace) const {
 bool Lens::trace_backwards(Ray &r, std::vector<Vector3D> *trace) const {
   // Part 1 Task 1: Implement this. It traces a ray from the world backwards through 
   // the lens towards the sensor.
-
+    double prev_ior;
+  for (int i = elts.size()-1; i >= 0; --i){
+    prev_ior = i > 0 ? elts[i-1].ior : 1;
+    elts[i].pass_through(r,prev_ior);
+    trace->push_back(r.o);
+  
+  }
 
 
   return true;
