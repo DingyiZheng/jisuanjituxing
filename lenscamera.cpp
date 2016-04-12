@@ -103,7 +103,8 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
     //    return true;
     // }
     if(helperhit(radius,aperture,center,hit_t1)&&helperhit(radius,aperture,center,hit_t2)){
-      *hit_p = helpermin(hit_t1,hit_t2);
+      *hit_p = helpermin(r,tt1,tt2);
+      cout<<"123"<<endl;
       return true;
     }else{
       if(helperhit(radius,aperture,center,hit_t1)){
@@ -125,8 +126,8 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
   
 }
 
-bool lensElement::helperhit(double radius, double aperture,double center, Vector3D hit1){
-  if(radius>0){
+bool LensElement::helperhit(double radius, double aperture,double center, Vector3D hit1) const{
+  if(radius<0){
     if(hit1.z>center&&sqrt(hit1.x*hit1.x+hit1.y*hit1.y)<0.5*aperture){
       return true;
 
@@ -134,7 +135,7 @@ bool lensElement::helperhit(double radius, double aperture,double center, Vector
     return false;
   }
 
-  if(radius <0 ){
+  if(radius >0 ){
     if(hit1.z<center&&sqrt(hit1.x*hit1.x+hit1.y*hit1.y)<0.5*aperture){
       return true;
 
@@ -144,11 +145,11 @@ bool lensElement::helperhit(double radius, double aperture,double center, Vector
 
 } 
 
-Vector3D lensElement::helpermin(Vector3D v1, Vector3D v2){
-  if(v1.z<v2.z){
-    return v1;
-  }
-  return v2;
+Vector3D LensElement::helpermin(Ray r, double t1,double t2) const{
+  // if(v1.z<v2.z){
+  //   return v1;
+  // }
+  return r.o + min(t1,t2)*r.d;
 
 }
 bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior) const {
@@ -171,9 +172,13 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
     normal = -normal;
   }
 
-  Matrix3x3 o2w;
-  make_coord_space(o2w, normal);
-  Matrix3x3 w2o = o2w.T();
+  Matrix3x3 w2o;
+  make_coord_space(w2o, normal);
+  Matrix3x3 o2w = w2o.T();
+
+  //   Matrix3x3 o2w;
+  // make_coord_space(o2w, normal);
+  // Matrix3x3 w2o = o2w.T();
 
   //Vector3D hit_p = r.o + r.d * isect.t;
   Vector3D w_in = w2o * (-r.d);
@@ -284,9 +289,9 @@ void Lens::set_focus_params() {
 
 bool Lens::trace(Ray &r, std::vector<Vector3D> *trace) const {
   // Part 1 Task 1: Implement this. It traces a ray from the sensor out into the world.
-  double prev_ior;
+  double prev_ior = 1;
   for (int i = 0; i <= elts.size()-1; i++){
-    prev_ior = i < elts.size()-1 ? elts[i+1].ior : 1;
+    prev_ior = i > 0 ? elts[i-1].ior : 1;
     elts[i].pass_through(r,prev_ior);
     trace->push_back(r.o);
   
