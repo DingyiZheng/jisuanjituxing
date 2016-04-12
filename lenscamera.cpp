@@ -287,19 +287,50 @@ void Lens::set_focus_params() {
   // After this function is called, the three variables
   // infinity_focus, near_focus, and focal_length
   // should be set correctly.
-  Ray r1 = Ray(Vector3D(1.0,1.0,-10.0),Vector3D(.0,.0,1.0));
-  Ray r2 = Ray(Vector3D(.0,.0,-10.0),Vector3D(.0,.0,1.0));
+  Ray r1 = Ray(Vector3D(1.0,1.0,-100.0),Vector3D(.0,.0,1.0));
+  //Ray r2 = Ray(Vector3D(.0,.0,-100.0),Vector3D(.0,.0,1.0));
  // Ray r1 = Ray(Vector3D(1.0,1.0,-10.0),Vector3D(.0,.0,1.0));
   vector<Vector3D> trace1;
-  trace1.push_back(r1.o);
+  //trace1.push_back(r1.o);
   //vector<Vector3D> trace2;
   trace_backwards(r1, &trace1);
   //cout<<"r1"<<r1.o<<r1.d<<endl;
  // trace_backwards(Ray &r2, &trace2);
-  double t = (r2.o.z - r1.o.z)/(r1.d.z - r2.d.z);
+  //double t = (r2.o.z - r1.o.z)/(r1.d.z - r2.d.z);
+  double t;
+  if(r1.d.x != .0){
+    t = -(r1.o.x)/(r1.d.x);
+  }else{
+   t = -(r1.o.y)/(r1.d.y);
+  }
   Vector3D focus_p = r1.o + t*r1.d;
-  cout<<"focus_p"<<focus_p<<endl;
+  //cout<<"focus_p"<<focus_p<<endl;
   infinity_focus = focus_p.z;
+
+  focal_length = abs(1.0/r1.d.x*r1.d.z);
+ 
+   vector<Vector3D> trace2;
+  // Ray r2 = Ray(Vector3D(.0,.0,-5*focal_length),Vector3D(.0001,.0,1.0).unit());
+  // trace_backwards(r2,&trace2);
+  // // if(r2.d.x != .0){
+  // //   t = -(r2.o.x)/(r2.d.x);
+  // // }else{
+  // //  t = -(r2.o.y)/(r2.d.y);
+  // // }
+  // // Vector3D focus_p2 = r2.o + t*r2.d;
+  // // //cout<<"focus_p"<<focus_p<<endl;
+  // // near_focus = focus_p2.z;
+  // near_focus = -r2.o.x/r2.d.x*r2.d.z;
+
+
+  /////////////////
+  double z = elts.back().center - elts.back().radius - (1 + log(focal_length)) * focal_length;
+   Vector3D near_orig(0, 0, z);
+   Vector3D near_dir = (Vector3D(elts.back().aperture / 100.0, 0, elts.back().center - elts.back().radius) -
+                     near_orig).unit();
+   Ray r2 = Ray(near_orig, near_dir);
+   trace_backwards(r2,&trace2);
+   near_focus = -r2.o.x/r2.d.x*r2.d.z;
 
 
 
