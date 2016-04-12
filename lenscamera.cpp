@@ -104,7 +104,7 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
     // }
     if(helperhit(radius,aperture,center,hit_t1)&&helperhit(radius,aperture,center,hit_t2)){
       *hit_p = helpermin(r,tt1,tt2);
-      cout<<"123"<<endl;
+     // cout<<"123"<<endl;
       return true;
     }else{
       if(helperhit(radius,aperture,center,hit_t1)){
@@ -165,20 +165,20 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
 
   Vector3D normal = Vector3D(hit_p.x, hit_p.y, hit_p.z - center);
   normal = normal.unit();
-  Vector3D rd = r.d.unit();
-  // double judge = dot(normal,r.d.normalize());
-  double judge = normal.x*rd.x + normal.y*rd.y+ normal.z*rd.z; 
-  if(judge == -1.0){
+  //Vector3D rd = r.d.unit();
+   double judge = dot(normal,-r.d);
+ // double judge = normal.x*rd.x + normal.y*rd.y+ normal.z*rd.z; 
+  if(judge <0 ){
     normal = -normal;
   }
 
-  Matrix3x3 w2o;
-  make_coord_space(w2o, normal);
-  Matrix3x3 o2w = w2o.T();
+  // Matrix3x3 w2o;
+  // make_coord_space(w2o, normal);
+  // Matrix3x3 o2w = w2o.T();
 
-  //   Matrix3x3 o2w;
-  // make_coord_space(o2w, normal);
-  // Matrix3x3 w2o = o2w.T();
+    Matrix3x3 o2w;
+  make_coord_space(o2w, normal);
+  Matrix3x3 w2o = o2w.T();
 
   //Vector3D hit_p = r.o + r.d * isect.t;
   Vector3D w_in = w2o * (-r.d);
@@ -186,6 +186,9 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
 
   
   double eta = prev_ior/ior;
+  if(r.d.z>0){
+    eta = ior/prev_ior;
+  }
   //Flip this ratio if the ray is traveling backwards.
 
   double sin2theta =  eta*eta*fmax(0.0, 1.0 - w_in.z * w_in.z);
@@ -194,9 +197,16 @@ bool LensElement::refract(Ray& r, const Vector3D& hit_p, const double& prev_ior)
   }
 
   double cosine = sqrt(1.0 - sin2theta);
-  Vector3D newdirection = (-eta*w_in.x, -eta*w_in.y, -cosine);
+  Vector3D newdirection = Vector3D(-eta*w_in.x, -eta*w_in.y, -cosine);
+
+  // if(dot(newdirection,normal)>=0){
+  //   return false;
+  // }
   newdirection = o2w*newdirection;
   newdirection = newdirection.unit();
+  
+
+
   r = Ray(hit_p,newdirection);
 
   return true;
@@ -265,6 +275,7 @@ void Lens::parse_lens_file(std::string filename) {
   // Get infinity and close focus depths, also get focal length.
   set_focus_params();
   // Focus at infinity to start.
+  //cout<<infinity_focus<<endl;
   sensor_depth = infinity_focus;
        
 }
@@ -276,6 +287,20 @@ void Lens::set_focus_params() {
   // After this function is called, the three variables
   // infinity_focus, near_focus, and focal_length
   // should be set correctly.
+  Ray r1 = Ray(Vector3D(1.0,1.0,-10.0),Vector3D(.0,.0,1.0));
+  Ray r2 = Ray(Vector3D(.0,.0,-10.0),Vector3D(.0,.0,1.0));
+ // Ray r1 = Ray(Vector3D(1.0,1.0,-10.0),Vector3D(.0,.0,1.0));
+  vector<Vector3D> trace1;
+  trace1.push_back(r1.o);
+  //vector<Vector3D> trace2;
+  trace_backwards(r1, &trace1);
+  //cout<<"r1"<<r1.o<<r1.d<<endl;
+ // trace_backwards(Ray &r2, &trace2);
+  double t = (r2.o.z - r1.o.z)/(r1.d.z - r2.d.z);
+  Vector3D focus_p = r1.o + t*r1.d;
+  cout<<"focus_p"<<focus_p<<endl;
+  infinity_focus = focus_p.z;
+
 
 
 
