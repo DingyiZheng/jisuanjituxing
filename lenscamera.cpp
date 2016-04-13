@@ -50,6 +50,8 @@ bool LensElement::pass_through(Ray &r, double &prev_ior) const {
     if(!refract(r,hit_p,prev_ior)){
       return false;
     }else{
+      if(radius!=0.)
+    prev_ior=ior;
       //cout<<"after"<<r.o<<endl;
       return true;
     }
@@ -83,8 +85,8 @@ bool LensElement::intersect(const Ray &r, Vector3D *hit_p) const {
    // cout<<"111"<<endl;
     double tt1 = (-b+sqrt(b24ac))/(2*a);
     double tt2 = (-b-sqrt(b24ac))/(2*a);
-    r.min_t = min(tt1,tt2);
-    r.max_t = max(tt1,tt2);
+   // r.min_t = min(tt1,tt2);
+    //r.max_t = max(tt1,tt2);
     Vector3D hit_t1 = r.o + tt1*r.d;
     Vector3D hit_t2 = r.o + tt2*r.d;
    // double hit1_2_z = sqrt(hit_t1.x*hit_t1.x + hit_t1.y*hit_t1.y);
@@ -394,8 +396,8 @@ Vector3D Lens::back_lens_sample() const {
 
   // Part 1 Task 2: Implement this. Should return a point randomly sampled
   // on the back element of the lens (the element closest to the sensor)
-  double theta = 4*M_PI_2*rand();
-  double r = elts[0].aperture*0.5*sqrt(rand());
+  double theta = 4*M_PI_2*random_uniform();
+  double r = elts[0].aperture*0.5*sqrt(random_uniform());
 
   return Vector3D(r*cos(theta),r* sin(theta),elts[0].center - elts[0].radius);
 
