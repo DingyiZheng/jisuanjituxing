@@ -514,8 +514,18 @@ double LensCamera::focus_metric(const ImageBuffer& ib) const {
 
   // Part 2 Task 1: Implement this. Design a metric to judge how "in-focus"
   // the image patch stored in the provided ImageBuffer is.
+ // pt->bump_settings();
+  double meangreen = mean_green(ib);
+  double variousgreen = 0;
+  double variousred = 0;
+  double variousblue = 0;
+  for(int i = 0; i<= ib.w*ib.h;i++){
+    variousgreen += pow(green_channel(ib.data[i] - meangreen),2);
+    variousred += pow(red_channel(ib.data[i] - meangreen),2);
+    variousblue += pow(blue_channel(ib.data[i] - meangreen),2);
+  }
 
-  return mean_green(ib); //  A meaningless standin
+  return (variousblue+variousred+variousgreen)/(ib.w*ib.h); //  A meaningless standin
 }
 
 
@@ -529,14 +539,93 @@ void LensCamera::autofocus() {
 
   // This call ensures that your pathtracer is rendering at high enough quality.
   // Increase samples per pixel to 16 and samples per light to 16.
-  pt->bump_settings();
+  // pt->bump_settings();
 
-  // Example code. Nothing to do with your actual implementation except to 
-  // demonstrate functionality.
-  ImageBuffer ib;
-  curr_lens().sensor_depth += 1;
-  pt->raytrace_cell(ib);
-  cout << "[LensCamera] The mean green is " << focus_metric(ib) << endl;
+  // // Example code. Nothing to do with your actual implementation except to 
+  // // demonstrate functionality.
+  // ImageBuffer ib;
+  // curr_lens().sensor_depth += 1;
+  // pt->raytrace_cell(ib);
+  // cout << "[LensCamera] The mean green is " << focus_metric(ib) << endl;
+
+  ///////////////////////////
+  // pt->bump_settings();
+  // ImageBuffer ib;
+  // //curr_lens().sensor_depth += 1;
+  // pt->raytrace_cell(ib);
+  // cout << "[LensCamera] The mean green is " << focus_metric(ib) << endl;
+
+  //infinity_focus to near_focus
+    ImageBuffer ib;
+  double mean1;
+  double mean2;
+  double focus;
+  double step = (curr_lens().near_focus - curr_lens().infinity_focus)/20.0;
+  cout<<"step="<<step<<endl;
+
+  //double clear = .01;
+    pt->raytrace_cell(ib);
+    mean1 = focus_metric(ib);
+    curr_lens().sensor_depth += step;
+    pt->raytrace_cell(ib);
+    mean2 = focus_metric(ib);
+    if(mean1<mean2){
+
+      cout<<"enter loop one"<<endl;
+      cout<<"hey mean2 = "<<mean2<<endl;
+       cout<<"hey mean1 = "<<mean1<<endl;
+       cout<<"sensor_depth = "<<curr_lens().sensor_depth<<endl;
+       cout<<"infinity_focus = "<<curr_lens().infinity_focus<<endl;
+      while(mean1<mean2&&curr_lens().sensor_depth<curr_lens().near_focus){
+
+       mean1 = mean2;
+       curr_lens().sensor_depth += step;
+       pt->raytrace_cell(ib);
+       mean2 = focus_metric(ib);
+       cout<<"various ="<<mean2<<endl;
+       cout<<"focus_depth"<<curr_lens().sensor_depth<<endl;
+       cout<<"counttime1"<<endl;
+       cout<<"mean2 = "<<mean2<<endl;
+       cout<<"mean1 = "<<mean1<<endl;
+
+      }
+      curr_lens().sensor_depth = curr_lens().sensor_depth - 0.5*step;
+
+      focus = curr_lens().sensor_depth;
+
+       cout<<"focus = "<<focus<<endl;
+
+
+    }else if(mean1>mean2){
+      cout<<"enter loop two"<<endl;
+       cout<<"hey mean2 = "<<mean2<<endl;
+       cout<<"hey mean1 = "<<mean1<<endl;
+       cout<<"sensor_depth = "<<curr_lens().sensor_depth<<endl;
+       cout<<"infinity_focus = "<<curr_lens().infinity_focus<<endl;
+      while(mean1>mean2&&curr_lens().sensor_depth>curr_lens().infinity_focus){
+       mean1 = mean2;
+       curr_lens().sensor_depth -= step;
+       pt->raytrace_cell(ib);
+       mean2 = focus_metric(ib);
+       cout<<"various ="<<mean2<<endl;
+       cout<<"focus_depth"<<curr_lens().sensor_depth<<endl;
+            cout<<"counttime2"<<endl;
+       cout<<"mean2 = "<<mean2<<endl;
+       cout<<"mean1 = "<<mean1<<endl;
+
+      }
+
+      curr_lens().sensor_depth = curr_lens().sensor_depth + 0.5*step;
+
+      focus = curr_lens().sensor_depth;
+      cout<<"focus = "<<focus<<endl;
+
+
+    }else{
+      focus = curr_lens().sensor_depth - 0.5*step;
+    }
+
+ 
 
 
   
